@@ -1,17 +1,17 @@
 #!/usr/bin/perl
 # Simple DNS-over-HTTPS client. Copyright 2018 CentralNic Ltd
-use Net::IP;
-use Net::DNS;
-use Net::DNS::Parameters;
+use Getopt::Long;
 use HTTP::Request::Common;
 use LWP::UserAgent;
-use Getopt::Long;
+use Mozilla::CA;
+use Net::DNS::Parameters;
+use Net::DNS;
 use URI;
 use strict;
 
 my $ct = 'application/dns-message';
 
-my ($qname, $qtype, $qclass, $url, $debug);
+my ($qname, $qtype, $qclass, $url, $debug, $insecure);
 
 #
 # dig-like command lines, things can appear in any order
@@ -25,6 +25,9 @@ while (scalar(@ARGV) > 0) {
 
 	if ($param =~ /^(-d|--debug)$/) {
 		$debug = 1;
+
+	} elsif ($param =~ /^(-k|--insecure)$/) {
+		$insecure = 1;
 
 	} elsif ($param =~ /^(@|https?:\/\/)(.+)$/) {
 		if ($url) {
@@ -92,7 +95,18 @@ $request->header('Accept' => $ct);
 
 print STDERR $request->as_string if ($debug);
 
-my $response = LWP::UserAgent->new->request($request);
+my %options;
+if ($insecure) {
+	$options{'ssl_opts'}->{'verify_hostname'} = undef;
+
+} else {
+	$options{'ssl_opts'}->{'verify_hostname'} = 1;
+	$options{'ssl_opts'}->{'SSL_ca_file'} = Mozilla::CA::SSL_ca_file();
+}
+
+my $ua = LWP::UserAgent->new(%options);
+
+my $response = $ua->request($request);
 
 print STDERR $response->as_string if ($debug);
 
