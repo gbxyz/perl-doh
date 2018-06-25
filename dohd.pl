@@ -2,9 +2,8 @@
 # Simple DNS-over-HTTPS server. Copyright 2018 CentralNic Ltd
 use Getopt::Long;
 use HTTP::Daemon;
-use Net::DNS;
-use Net::IP;
 use MIME::Base64;
+use Net::DNS;
 use URI;
 use strict;
 
@@ -16,19 +15,25 @@ my $raddr = '1.1.1.1';
 my $resolver = Net::DNS::Resolver->new('nameservers' => [ $raddr ]);
 
 my $server = HTTP::Daemon->new(
-	'LocalAddr' => $laddr,
-	'LocalPort' => $lport,
+	'LocalAddr'	=> $laddr,
+	'LocalPort'	=> $lport,
 );
 
 if (!$server) {
 	printf(STDERR "Unable to start server on %s:%u: %s\n", $laddr, $lport, $@);
 	exit(1);
+
+} else {
+	printf(STDERR "DoH server running on %s\n", $server->url);
+
 }
 
 #
 # listen for connections
 #
 while (my $connection = $server->accept) {
+
+	printf(STDERR "Connection from %s\n", $connection->peerhost);
 
 	#
 	# catch errors by using eval { ... }
@@ -38,6 +43,11 @@ while (my $connection = $server->accept) {
 		$connection->close;
 		undef($connection);
 	};
+
+	if ($@) {
+		chomp($@);
+		printf(STDERR "%s: %s\n", $connection->peerhost, $@);
+	}
 }
 
 #
@@ -70,7 +80,8 @@ sub handle_connection {
 		$data = decode_base64($params{'dns'});
 
 	} elsif ($request->method eq 'POST') {
-		if ($ct ne $request->header('Content-Type')) {
+		if ($request->header('Content-Type') ne $ct) {
+			printf(STDERR "%s 415 (type is '%s')", $connection->peerhost, $request->header('Content-Type'));
 			$connection->send_error(415);
 
 		} else {
@@ -79,6 +90,7 @@ sub handle_connection {
 		}
 
 	} else {
+		printf(STDERR "%s 405 (method is '%s')", $connection->peerhost, $request->method);
 		$connection->send_error(405);
 		return;
 
@@ -87,6 +99,7 @@ sub handle_connection {
 	my $packet = Net::DNS::Packet->new(\$data);
 
 	if (!$packet) {
+		printf(STDERR "%s 400\n", $connection->peerhost);
 		$connection->send_error(400);
 		return;
 
@@ -97,9 +110,12 @@ sub handle_connection {
 		my $response = $resolver->send($packet);
 
 		if (!$response) {
+			printf(STDERR "%s 504\n", $connection->peerhost);
 			$connection->send_error(504);
 
 		} else {
+			printf(STDERR "%s %s %s\n", $connection->peerhost, ($response->question)[0]->qname, lc($response->header->rcode));
+
 			#
 			# send the response back to the client
 			#
