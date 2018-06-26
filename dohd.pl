@@ -10,19 +10,25 @@ use strict;
 
 my @types = qw(application/dns-message application/dns-udpwireformat);
 
-my $laddr = '127.0.0.1';
-my $lport = '8080';
+my $addr  = '127.0.0.1';
+my $port  = '8080';
 my $raddr = '127.0.0.1';
+GetOptions(
+	'addr=s'	=> \$addr,
+	'port=i'	=> \$port,
+	'resolver=s'	=> \$raddr,
+);
 
 my $resolver = Net::DNS::Resolver->new('nameservers' => [ $raddr ]);
 
 my $server = HTTP::Daemon->new(
-	'LocalAddr'	=> $laddr,
-	'LocalPort'	=> $lport,
+	'LocalAddr'	=> $addr,
+	'LocalPort'	=> $port,
 );
 
 if (!$server) {
-	printf(STDERR "Unable to start server on %s:%u: %s\n", $laddr, $lport, $@);
+	chomp($@);
+	printf(STDERR "Unable to start server on %s:%u: %s\n", $addr, $port, $@);
 	exit(1);
 
 } else {
