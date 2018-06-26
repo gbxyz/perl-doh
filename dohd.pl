@@ -12,7 +12,7 @@ my @types = qw(application/dns-message application/dns-udpwireformat);
 
 my $laddr = '127.0.0.1';
 my $lport = '8080';
-my $raddr = '1.1.1.1';
+my $raddr = '127.0.0.1';
 
 my $resolver = Net::DNS::Resolver->new('nameservers' => [ $raddr ]);
 
