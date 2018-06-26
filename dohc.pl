@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 # Simple DNS-over-HTTPS client. Copyright 2018 CentralNic Ltd
+use File::Basename qw(basename);
 use Getopt::Long;
 use HTTP::Request::Common;
 use LWP::UserAgent;
@@ -95,7 +96,10 @@ $request->header('Accept' => $ct);
 
 print STDERR $request->as_string if ($debug);
 
-my %options;
+my %options = (
+	'agent' => basename(__FILE__),
+);
+
 if ($insecure) {
 	$options{'ssl_opts'}->{'verify_hostname'} = undef;
 
