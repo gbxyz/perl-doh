@@ -86,7 +86,7 @@ sub handle_connection {
 		$data = decode_base64($params{'dns'});
 
 	} elsif ($request->method eq 'POST') {
-		if (!any { $_ eq $request->header('Content-Type') } @types) {
+		if (!any { lc($_) eq lc($request->header('Content-Type')) } @types) {
 			printf(STDERR "%s 415 (type is '%s')\n", $connection->peerhost, $request->header('Content-Type'));
 			$connection->send_error(415);
 
