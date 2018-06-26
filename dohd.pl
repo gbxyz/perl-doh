@@ -2,12 +2,14 @@
 # Simple DNS-over-HTTPS server. Copyright 2018 CentralNic Ltd
 use Getopt::Long;
 use HTTP::Daemon;
+use List::MoreUtils qw(any);
 use MIME::Base64;
 use Net::DNS;
 use URI;
 use strict;
 
-my $ct = 'application/dns-message';
+my @types = qw(application/dns-message application/dns-udpwireformat);
+
 my $laddr = '127.0.0.1';
 my $lport = '8080';
 my $raddr = '1.1.1.1';
@@ -32,8 +34,6 @@ if (!$server) {
 # listen for connections
 #
 while (my $connection = $server->accept) {
-
-	printf(STDERR "Connection from %s\n", $connection->peerhost);
 
 	#
 	# catch errors by using eval { ... }
@@ -80,8 +80,8 @@ sub handle_connection {
 		$data = decode_base64($params{'dns'});
 
 	} elsif ($request->method eq 'POST') {
-		if ($request->header('Content-Type') ne $ct) {
-			printf(STDERR "%s 415 (type is '%s')", $connection->peerhost, $request->header('Content-Type'));
+		if (!any { $_ eq $request->header('Content-Type') } @types) {
+			printf(STDERR "%s 415 (type is '%s')\n", $connection->peerhost, $request->header('Content-Type'));
 			$connection->send_error(415);
 
 		} else {
@@ -90,7 +90,7 @@ sub handle_connection {
 		}
 
 	} else {
-		printf(STDERR "%s 405 (method is '%s')", $connection->peerhost, $request->method);
+		printf(STDERR "%s 405 (method is '%s')\n", $connection->peerhost, $request->method);
 		$connection->send_error(405);
 		return;
 
@@ -120,7 +120,7 @@ sub handle_connection {
 			# send the response back to the client
 			#
 			$connection->send_status_line;
-			$connection->send_header('Content-Type', $ct);
+			$connection->send_header('Content-Type', $types[0]);
 			$connection->send_header('Connection', 'close');
 			$connection->send_crlf;
 			$connection->print($response->data);
