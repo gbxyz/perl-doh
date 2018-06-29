@@ -230,7 +230,7 @@ sub handle_connection {
 				#
 				$connection->send_status_line;
 				$connection->send_header('Server', basename(__FILE__));
-				$connection->send_header(CONTENT_TYPE, $types[0]);
+				$connection->send_header(CONTENT_TYPE, $request->header(CONTENT_TYPE) || $types[0]);
 				$connection->send_header('Connection', 'close');
 				$connection->send_crlf;
 				$connection->print($response->data);
