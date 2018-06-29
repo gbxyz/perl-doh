@@ -7,14 +7,14 @@ See:
 This repository contains:
 
 
-## `dohc.pl` (DoH client)
+## `hdig` (DoH client)
 
 This script implements a simple dig-like DoH client using `Net::DNS` and `LWP`.
 
 Usage:
 
 ```
-$ dohc.pl OPTIONS
+$ hdig OPTIONS
 ```
 
 where `OPTIONS` can be any of the following (in any order):
