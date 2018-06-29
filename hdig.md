@@ -2,15 +2,15 @@
 
 `hdig` a `dig`-like client for DNS over HTTPS (DoH)
 
-# SYNOPSIS
-
-        hdig OPTIONS
-
 # DESCRIPTION
 
 `hdig` is a simple DNS over HTTPS (DoH) client implemented using [Net::DNS](https://metacpan.org/pod/Net::DNS) and [LWP](https://metacpan.org/pod/LWP).
 
 It will construct a DNS query, send it as an HTTP request to a DoH server, and display the response in human-readable format.
+
+# SYNOPSIS
+
+        hdig OPTIONS
 
 # OPTIONS
 
