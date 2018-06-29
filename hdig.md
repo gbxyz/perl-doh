@@ -1,6 +1,6 @@
 # NAME
 
-`hdig` a `dig`-like client for DNS over HTTPS (DoH)
+`hdig` a `dig`-like client for DNS over HTTPS (DoH).
 
 # DESCRIPTION
 

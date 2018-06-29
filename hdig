@@ -129,7 +129,7 @@ __END__
 
 =head1 NAME
 
-C<hdig> a C<dig>-like client for DNS over HTTPS (DoH)
+C<hdig> a C<dig>-like client for DNS over HTTPS (DoH).
 
 =head1 DESCRIPTION
 
