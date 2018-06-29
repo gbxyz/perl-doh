@@ -105,6 +105,15 @@ sub handle_connection {
 		$connection->send_error(400);
 
 	} else {
+		my $xff = 'X-Forwarded-For';
+		my $peer;
+		if ($request->header($xff)) {
+			$peer = sprintf('%s (%s: %s)', $connection->peerhost, $xff, $request->header($xff));
+
+		} else {
+			$peer = $connection->peerhost;
+
+		}
 
 		#
 		# DNS query packet data goes here
@@ -122,7 +131,7 @@ sub handle_connection {
 
 		} elsif ($request->method eq 'POST') {
 			if (!any { lc($_) eq lc($request->header('Content-Type')) } @types) {
-				syslog(LOG_DEBUG, sprintf("%s 415 (type is '%s')", $connection->peerhost, $request->header('Content-Type')));
+				syslog(LOG_DEBUG, sprintf("%s 415 (type is '%s')", $peer, $request->header('Content-Type')));
 				$connection->send_error(415);
 				return undef;
 
@@ -132,7 +141,7 @@ sub handle_connection {
 			}
 
 		} else {
-			syslog(LOG_DEBUG, sprintf("%s 405 (method is '%s')", $connection->peerhost, $request->method));
+			syslog(LOG_DEBUG, sprintf("%s 405 (method is '%s')", $peer, $request->method));
 			$connection->send_error(405);
 			return undef;
 
@@ -144,7 +153,7 @@ sub handle_connection {
 		my $packet = Net::DNS::Packet->new(\$data);
 
 		if (!$packet) {
-			syslog(LOG_DEBUG, sprintf('%s 400 (unable to parse packet data)', $connection->peerhost));
+			syslog(LOG_DEBUG, sprintf('%s 400 (unable to parse packet data)', $peer));
 			$connection->send_error(400);
 
 		} else {
@@ -154,11 +163,11 @@ sub handle_connection {
 			my $response = $resolver->send($packet);
 
 			if (!$response) {
-				syslog(LOG_DEBUG, sprintf('%s 504 (%s)', $connection->peerhost, $resolver->errorstring));
+				syslog(LOG_DEBUG, sprintf('%s 504 (%s)', $peer, $resolver->errorstring));
 				$connection->send_error(504);
 
 			} else {
-				syslog(LOG_DEBUG, sprintf('%s %s/%s/%s %s', $connection->peerhost, ($response->question)[0]->qname, ($response->question)[0]->qclass, ($response->question)[0]->qtype, lc($response->header->rcode)));
+				syslog(LOG_DEBUG, sprintf('%s %s/%s/%s %s', $peer, ($response->question)[0]->qname, ($response->question)[0]->qclass, ($response->question)[0]->qtype, lc($response->header->rcode)));
 
 				#
 				# send the response back to the client
