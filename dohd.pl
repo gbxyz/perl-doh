@@ -20,7 +20,14 @@ GetOptions(
 	'debug'		=> \$HTTP::Daemon::DEBUG,
 );
 
-my $resolver = Net::DNS::Resolver->new('nameservers' => [ $raddr ]);
+my $resolver = Net::DNS::Resolver->new(
+	'nameservers'		=> [ $raddr ],
+	'debug'			=> $HTTP::Daemon::DEBUG,
+	'persistent_tcp'	=> 1,
+	'tcp_timeout'		=> 1,
+	'udp_timeout'		=> 1,
+	'retry'			=> 1,
+);
 
 my $server = HTTP::Daemon->new(
 	'LocalAddr'	=> $addr,
