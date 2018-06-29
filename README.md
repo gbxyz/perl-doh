@@ -1,72 +1,34 @@
 # DNS-over-HTTPS (DoH) tools for Perl
 
-See:
+DNS over HTTPS (DoH) is specified by the following draft RFC:
 
 * https://tools.ietf.org/html/draft-ietf-doh-dns-over-https
 
 This repository contains:
 
-
-## `hdig` (DoH client)
-
-This script implements a simple dig-like DoH client using `Net::DNS` and `LWP`.
-
-Usage:
-
-```
-$ hdig OPTIONS
-```
-
-where `OPTIONS` can be any of the following (in any order):
-
-* `QNAME` - query name. mandatory
-
-* `QTYPE` - query type, any RR type supported by your version of `Net::DNS` will work. Defaults to `A` if unset.
-
-* `QCLASS` - query class, defaults to `IN`
-
-* `URL` - this may be either a fully-qualified URL such as `https://example.com/dns-query` or a string of the form
-
-    ````
-    @example.com
-    ````
-
-    This will get turned into the HTTPS URL above.
-
-The full DNS response will be printed to `STDOUT`.
+* `hdig`, a DoH client. See `hdig.md` for more information.
+* `dohd`, a DoH server. See `dohd.md` for more information.
 
 
-## `dohd.pl` (DoH server)
+## COPYRIGHT
 
-This script implements a simple DoH server using `Net::DNS` and `HTTP::Daemon`. You will need to put something in front of it to do SSL termination.
-
-Usage:
-
-```
-$ dohd.pl OPTIONS
-```
-
-where `OPTIONS` can be any of the following (in any order):
-
-* `--addr=ADDR` - address to listen on, defaults to `127.0.0.1`
-
-* `--port` - port to listen on, defaults to `8080`
-
-* `--resolver` - DNS server to forward queries to, defaults to `127.0.0.1`
-
-* `--debug` - enables debug mode for `HTTP::Daemon` and `Net::DNS::Resolver`
-
-* `--daemon` - daemonise, otherwise, `dohd.pl` stays in the foreground.
+Copyright 2018 CentralNic Ltd. All rights reserved.
 
 
-### Supporting HTTPS and HTTP/2
+## LICENSE
 
-The [DoH spec](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https) makes support for HTTPS mandatory, and says that you SHOULD support HTTP/2.
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
+provided that the above copyright notice appear in all copies and that
+both that copyright notice and this permission notice appear in
+supporting documentation, and that the name of the author not be used
+in advertising or publicity pertaining to distribution of the software
+without specific prior written permission.
 
-This can be achieved fairly easily by using [nghttpx](https://nghttp2.org/documentation/nghttpx.1.html) as a reverse proxy sitting in front of `dohd.pl`, using the following command:
-
-```
-nghttpx -b 127.0.0.1,8080 -f 127.0.0.1,4430 server.key server.crt
-```
-
-The above command will accept HTTP/2 connections over HTTPS on 127.0.0.1 port 4430 and forward them as HTTP/1.1 connections to 127.0.0.1 port 8080.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
