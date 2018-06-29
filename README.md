@@ -6,14 +6,12 @@ DNS over HTTPS (DoH) is specified by the following draft RFC:
 
 This repository contains:
 
-* `hdig`, a DoH client. See `hdig.md` for more information.
-* `dohd`, a DoH server. See `dohd.md` for more information.
-
+* [`hdig`](https://gitlab.centralnic.com/centralnic/perl-doh/blob/master/hdig.md), a DoH client.
+* [`dohd`](https://gitlab.centralnic.com/centralnic/perl-doh/blob/master/dohd.md), a DoH server.
 
 ## COPYRIGHT
 
 Copyright 2018 CentralNic Ltd. All rights reserved.
-
 
 ## LICENSE
 
