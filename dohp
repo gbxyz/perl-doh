@@ -1,0 +1,223 @@
+#!/usr/bin/perl
+use File::Basename qw(basename);
+use Getopt::Long;
+use HTTP::Request::Common;
+use LWP::UserAgent;
+use Mozilla::CA;
+use Net::DNS::Nameserver;
+use Sys::Syslog qw(:standard :macros);
+use constant URL_TEMPLATE => 'https://%s/dns-query';
+use constant CONTENT_TYPE => 'application/dns-message';
+use strict;
+
+#
+# defaults
+#
+my $addr	= '127.0.0.1';
+my $port	= '5353';
+my $daemon	= undef;
+my $help	= undef;
+my $debug	= undef;
+my $url		= undef;
+my $server	= undef;
+my $insecure	= undef;
+
+GetOptions(
+	'addr=s'	=> \$addr,
+	'port=i'	=> \$port,
+	'server=s'	=> \$server,
+	'url=s'		=> \$url,
+	'debug'		=> \$debug,
+	'daemon'	=> \$daemon,
+	'help'		=> \$help,
+	'insecure'	=> \$insecure,
+);
+
+pod2usage(1) if ($help);
+
+if ($url && $server) {
+	print STDERR "Error: cannot use both --server and --url\n";
+	exit;
+
+} elsif ($server) {
+	$url = sprintf(URL_TEMPLATE, $server);
+
+} elsif (!$url) {
+	print STDERR "Missing --server or --url argument\n";
+	exit(1);
+
+}
+
+my %options = (
+	'agent' => basename(__FILE__),
+	'timeout' => 3,
+	'keep_alive' => 1,
+);
+
+if ($insecure) {
+	$options{'ssl_opts'}->{'verify_hostname'} = undef;
+
+} else {
+	$options{'ssl_opts'}->{'verify_hostname'} = 1;
+	$options{'ssl_opts'}->{'SSL_ca_file'} = Mozilla::CA::SSL_ca_file();
+}
+
+my $ua = LWP::UserAgent->new(%options);
+
+openlog(basename(__FILE__), 'pid,perror', LOG_DAEMON);
+setlogmask(LOG_UPTO(LOG_DEBUG));
+
+my $server = Net::DNS::Nameserver->new(
+	'LocalAddr'	=> $addr,
+	'LocalPort'	=> $port,
+	'ReplyHandler'	=> \&reply_handler,
+);
+
+if (!$server) {
+	chomp($@);
+	syslog(LOG_CRIT, sprintf('Unable to start server on %s:%u: %s', $addr, $port, $@));
+	exit(1);
+
+} else {
+	syslog(LOG_INFO, sprintf('DNS server running on %s:%u', $addr, $port));
+
+}
+
+if ($daemon) {
+	syslog(LOG_DEBUG, 'daemonizing');
+	if (fork() > 0) {
+		exit 0;
+
+	} else {
+		setsid();
+		chdir('/');
+		$0 = sprintf('[%s]', basename(__FILE__));
+
+	}
+}
+
+$server->main_loop;
+
+sub reply_handler {
+        my (undef, undef, undef, $peer, $packet, undef) = @_;
+
+	print STDERR $packet->string if ($debug);
+
+	my $request = POST($url, 'Content-Type' => CONTENT_TYPE, 'Content' => $packet->data);
+	$request->header('Accept' => CONTENT_TYPE);
+
+	print STDERR $request->as_string if ($debug);
+
+	my $response = $ua->request($request);
+
+	print STDERR $response->as_string if ($debug);
+
+	if ($response->is_error || 200 != $response->code) {
+		syslog(LOG_DEBUG, sprintf(
+			'%s %s/%s/%s servfail (%s)',
+			$peer,
+			($packet->question)[0]->qname,
+			($packet->question)[0]->qclass,
+			($packet->question)[0]->qtype,
+			$response->status_line,
+		));
+		return 'SERVFAIL';
+
+	} else {
+		my $data = $response->content;
+		my $answer = Net::DNS::Packet->new(\$data);
+
+		print STDERR $answer->string if ($debug);
+
+		syslog(LOG_DEBUG, sprintf(
+			'%s %s/%s/%s %s',
+			$peer,
+			($answer->question)[0]->qname,
+			($answer->question)[0]->qclass,
+			($answer->question)[0]->qtype,
+			lc($answer->header->rcode)
+		));
+
+		my $opt = {};
+		foreach my $name ($answer->edns->options) {
+			$opt->{$name} = $answer->edns->option($name);
+		}
+
+		return (
+			$answer->header->rcode,
+			[ $answer->answer ],
+			[ $answer->authority ],
+			[ $answer->additional ],
+			{
+				'aa'	=> $answer->header->aa,
+				'ad'	=> $answer->header->ad,
+				'ra'	=> $answer->header->ra,
+			},
+			$opt
+		);
+	}
+}
+
+__END__
+
+=pod
+
+=head1 NAME
+
+C<dohp>, a DNS over HTTPS (DoH) proxy server.
+
+=head1 DESCRIPTION
+
+C<dohd> is a simple DNS server built using L<Net::DNS> and L<HTTP::Daemon>.
+It accepts DNS queries, forwards them to a DNS over HTTPS (DoH) server,
+and sends the response back to the client.
+
+=head1 SYNOPSIS
+
+	dohp OPTIONS
+
+=head1 OPTIONS
+
+=over
+
+=item * C<--addr=ADDR> - address to listen on, defaults to C<127.0.0.1>.
+
+=item * C<--port=PORT> - port to listen on, defaults to C<5353>.
+
+=item * C<--server=URL> - Name of the server to send DoH queries to.
+
+=item * C<--url=URL> - URL to use instead of a server name.
+
+=item * C<--insecure> - Disable SSL certification verification.
+
+=item * C<--debug> - Enables debug mode for C<HTTP::Daemon> and C<Net::DNS::Resolver>.
+
+=item * C<--daemon> - Daemonise, otherwise, C<dohd> stays in the foreground.
+
+=item * C<--help> - display help.
+
+=back
+
+=head1 COPYRIGHT
+
+Copyright 2018 CentralNic Ltd. All rights reserved.
+
+=head1 LICENSE
+
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
+provided that the above copyright notice appear in all copies and that
+both that copyright notice and this permission notice appear in
+supporting documentation, and that the name of the author not be used
+in advertising or publicity pertaining to distribution of the software
+without specific prior written permission.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+=cut
