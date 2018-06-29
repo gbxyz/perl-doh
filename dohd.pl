@@ -39,7 +39,7 @@ my $resolver = Net::DNS::Resolver->new(
 	'retry'			=> 1,
 );
 
-openlog(basename(__FILE__, '.pl'), 'pid,perror', LOG_DAEMON);
+openlog(basename(__FILE__), 'pid,perror', LOG_DAEMON);
 setlogmask(LOG_UPTO(LOG_DEBUG));
 
 my $server = HTTP::Daemon->new(
@@ -178,7 +178,7 @@ sub handle_connection {
 				# send the response back to the client
 				#
 				$connection->send_status_line;
-				$connection->send_header('Server', basename(__FILE__, '.pl'));
+				$connection->send_header('Server', basename(__FILE__));
 				$connection->send_header('Content-Type', $types[0]);
 				$connection->send_header('Connection', 'close');
 				$connection->send_crlf;
