@@ -219,6 +219,8 @@ C<dohd> is a simple DoH server built L<Net::DNS> and L<HTTP::Daemon>.
 
 =item * C<--daemon> - daemonise, otherwise, C<dohd> stays in the foreground.
 
+=item * C<--help> - display help.
+
 =back
 
 =head2 Supporting HTTPS and HTTP/2
