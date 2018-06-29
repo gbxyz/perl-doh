@@ -264,9 +264,9 @@ and sends the response back to the client.
 
 =item * C<--addr=ADDR> - address to listen on, defaults to C<127.0.0.1>.
 
-=item * C<--port> - port to listen on, defaults to C<8080>.
+=item * C<--port=PORT> - port to listen on, defaults to C<8080>.
 
-=item * C<--resolver> - DNS server to forward queries to, defaults to C<127.0.0.1>.
+=item * C<--resolver=ADDR> - DNS server to forward queries to, defaults to C<127.0.0.1>.
 
 =item * C<--debug> - enables debug mode for C<HTTP::Daemon> and C<Net::DNS::Resolver>.
 

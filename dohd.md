@@ -15,8 +15,8 @@ and sends the response back to the client.
 # OPTIONS
 
 - `--addr=ADDR` - address to listen on, defaults to `127.0.0.1`.
-- `--port` - port to listen on, defaults to `8080`.
-- `--resolver` - DNS server to forward queries to, defaults to `127.0.0.1`.
+- `--port=PORT` - port to listen on, defaults to `8080`.
+- `--resolver=ADDR` - DNS server to forward queries to, defaults to `127.0.0.1`.
 - `--debug` - enables debug mode for `HTTP::Daemon` and `Net::DNS::Resolver`.
 - `--daemon` - daemonise, otherwise, `dohd` stays in the foreground.
 - `--help` - display help.
