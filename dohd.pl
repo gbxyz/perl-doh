@@ -79,67 +79,76 @@ sub handle_connection {
 	#
 	my $request = $connection->get_request;
 
-	#
-	# DNS query packet data goes here
-	#
-	my $data;
+	if (!$request) {
+		printf(STDERR "%s 400 (%s)\n", $connection->peerhost, $connection->reason);
+		$connection->send_error(400);
 
-	if ($request->method eq 'GET') {
+	} else {
 
 		#
-		# extract packet data from query string
+		# DNS query packet data goes here
 		#
-		my %params = URI->new_abs($request->uri, $server->url)->query_form;
+		my $data;
 
-		$data = decode_base64($params{'dns'});
+		if ($request->method eq 'GET') {
 
-	} elsif ($request->method eq 'POST') {
-		if (!any { lc($_) eq lc($request->header('Content-Type')) } @types) {
-			printf(STDERR "%s 415 (type is '%s')\n", $connection->peerhost, $request->header('Content-Type'));
-			$connection->send_error(415);
+			#
+			# extract packet data from query string
+			#
+			my %params = URI->new_abs($request->uri, $server->url)->query_form;
+
+			$data = decode_base64($params{'dns'} || $params{'body'});
+
+		} elsif ($request->method eq 'POST') {
+			if (!any { lc($_) eq lc($request->header('Content-Type')) } @types) {
+				printf(STDERR "%s 415 (type is '%s')\n", $connection->peerhost, $request->header('Content-Type'));
+				$connection->send_error(415);
+				return undef;
+
+			} else {
+				$data = $request->content;
+
+			}
 
 		} else {
-			$data = $request->content;
+			printf(STDERR "%s 405 (method is '%s')\n", $connection->peerhost, $request->method);
+			$connection->send_error(405);
+			return undef;
 
 		}
 
-	} else {
-		printf(STDERR "%s 405 (method is '%s')\n", $connection->peerhost, $request->method);
-		$connection->send_error(405);
-		return;
-
-	}
-
-	my $packet = Net::DNS::Packet->new(\$data);
-
-	if (!$packet) {
-		printf(STDERR "%s 400\n", $connection->peerhost);
-		$connection->send_error(400);
-		return;
-
-	} else {
 		#
-		# send the packet to the server
+		# build packet object from data
 		#
-		my $response = $resolver->send($packet);
+		my $packet = Net::DNS::Packet->new(\$data);
 
-		if (!$response) {
-			printf(STDERR "%s 504\n", $connection->peerhost);
-			$connection->send_error(504);
+		if (!$packet) {
+			printf(STDERR "%s 400 (unable to parse packet data)\n", $connection->peerhost);
+			$connection->send_error(400);
 
 		} else {
-			printf(STDERR "%s %s %s\n", $connection->peerhost, ($response->question)[0]->qname, lc($response->header->rcode));
-
 			#
-			# send the response back to the client
+			# send the packet to the server
 			#
-			$connection->send_status_line;
-			$connection->send_header('Content-Type', $types[0]);
-			$connection->send_header('Connection', 'close');
-			$connection->send_crlf;
-			$connection->print($response->data);
-			$connection->close;
+			my $response = $resolver->send($packet);
 
+			if (!$response) {
+				printf(STDERR "%s 504 (%s)\n", $connection->peerhost, $resolver->errorstring);
+				$connection->send_error(504);
+
+			} else {
+				printf(STDERR "%s %s %s\n", $connection->peerhost, ($response->question)[0]->qname, lc($response->header->rcode));
+
+				#
+				# send the response back to the client
+				#
+				$connection->send_status_line;
+				$connection->send_header('Content-Type', $types[0]);
+				$connection->send_header('Connection', 'close');
+				$connection->send_crlf;
+				$connection->print($response->data);
+
+			}
 		}
 	}
 }
