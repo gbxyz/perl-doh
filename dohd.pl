@@ -17,6 +17,7 @@ GetOptions(
 	'addr=s'	=> \$addr,
 	'port=i'	=> \$port,
 	'resolver=s'	=> \$raddr,
+	'debug'		=> \$HTTP::Daemon::DEBUG,
 );
 
 my $resolver = Net::DNS::Resolver->new('nameservers' => [ $raddr ]);
