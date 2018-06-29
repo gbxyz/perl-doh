@@ -183,3 +183,69 @@ sub handle_connection {
 		}
 	}
 }
+
+__END__
+
+=pod
+
+=head1 NAME
+
+C<dohd>, a DNS over HTTPS (DoH) server.
+
+=head1 DESCRIPTION
+
+C<dohd> is a simple DoH server built L<Net::DNS> and L<HTTP::Daemon>.
+
+=head1 SYNOPSIS
+
+	dohd OPTIONS
+
+=head1 OPTIONS
+
+=over
+
+=item * C<--addr=ADDR> - address to listen on, defaults to C<127.0.0.1>.
+
+=item * C<--port> - port to listen on, defaults to C<8080>.
+
+=item * C<--resolver> - DNS server to forward queries to, defaults to C<127.0.0.1>.
+
+=item * C<--debug> - enables debug mode for C<HTTP::Daemon> and C<Net::DNS::Resolver>.
+
+=item * C<--daemon> - daemonise, otherwise, C<dohd> stays in the foreground.
+
+=back
+
+=head2 Supporting HTTPS and HTTP/2
+
+The DoH specification (L<https://tools.ietf.org/html/draft-ietf-doh-dns-over-https>) makes support for HTTPS mandatory, and says that you SHOULD support HTTP/2.
+
+This can be achieved fairly easily by using C<nghttpx>, (L<https://nghttp2.org/documentation/nghttpx.1.html>) as a reverse proxy sitting in front of C<dohd>:
+
+	nghttpx -b 127.0.0.1,8080 -f 127.0.0.1,4430 server.key server.crt
+
+The above command will accept HTTP/2 connections over HTTPS on C<127.0.0.1> port C<4430> and forward them as HTTP/1.1 connections to C<127.0.0.1> port C<8080>.
+
+=head1 COPYRIGHT
+
+Copyright 2018 CentralNic Ltd. All rights reserved.
+
+=head1 LICENSE
+
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
+provided that the above copyright notice appear in all copies and that
+both that copyright notice and this permission notice appear in
+supporting documentation, and that the name of the author not be used
+in advertising or publicity pertaining to distribution of the software
+without specific prior written permission.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+=cut
