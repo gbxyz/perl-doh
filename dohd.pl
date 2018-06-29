@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 # Simple DNS-over-HTTPS server. Copyright 2018 CentralNic Ltd
+use File::Basename qw(basename);
 use Getopt::Long;
 use HTTP::Daemon;
 use List::MoreUtils qw(any);
@@ -143,6 +144,7 @@ sub handle_connection {
 				# send the response back to the client
 				#
 				$connection->send_status_line;
+				$connection->send_header('Server', basename(__FILE__, '.pl'));
 				$connection->send_header('Content-Type', $types[0]);
 				$connection->send_header('Connection', 'close');
 				$connection->send_crlf;
