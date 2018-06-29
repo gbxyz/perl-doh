@@ -7,8 +7,8 @@ use LWP::UserAgent;
 use Mozilla::CA;
 use Net::DNS::Parameters;
 use Net::DNS;
-use URI;
 use Pod::Usage;
+use URI;
 use constant URL_TEMPLATE => 'https://%s/dns-query';
 use constant CONTENT_TYPE => 'application/dns-message';
 use strict;
@@ -97,7 +97,7 @@ $request->header('Accept' => CONTENT_TYPE);
 print STDERR $request->as_string if ($debug);
 
 my %options = (
-	'agent' => basename(__FILE__, '.pl'),
+	'agent' => basename(__FILE__),
 );
 
 if ($insecure) {
@@ -131,15 +131,15 @@ __END__
 
 C<hdig> a C<dig>-like client for DNS over HTTPS (DoH)
 
-=head1 SYNOPSIS
-
-	hdig OPTIONS
-
 =head1 DESCRIPTION
 
 C<hdig> is a simple DNS over HTTPS (DoH) client implemented using L<Net::DNS> and L<LWP>.
 
 It will construct a DNS query, send it as an HTTP request to a DoH server, and display the response in human-readable format.
+
+=head1 SYNOPSIS
+
+	hdig OPTIONS
 
 =head1 OPTIONS
 
