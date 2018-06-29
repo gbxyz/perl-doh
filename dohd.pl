@@ -6,6 +6,8 @@ use HTTP::Daemon;
 use List::MoreUtils qw(any);
 use MIME::Base64;
 use Net::DNS;
+use POSIX qw(setsid);
+use Sys::Syslog qw(:standard :macros);
 use URI;
 use strict;
 
@@ -14,11 +16,13 @@ my @types = qw(application/dns-message application/dns-udpwireformat);
 my $addr  = '127.0.0.1';
 my $port  = '8080';
 my $raddr = '127.0.0.1';
+my $daemon = undef;
 GetOptions(
 	'addr=s'	=> \$addr,
 	'port=i'	=> \$port,
 	'resolver=s'	=> \$raddr,
 	'debug'		=> \$HTTP::Daemon::DEBUG,
+	'daemon'	=> \$daemon,
 );
 
 my $resolver = Net::DNS::Resolver->new(
@@ -30,6 +34,9 @@ my $resolver = Net::DNS::Resolver->new(
 	'retry'			=> 1,
 );
 
+openlog(basename(__FILE__, '.pl'), 'pid,perror', LOG_DAEMON);
+setlogmask(LOG_UPTO(LOG_DEBUG));
+
 my $server = HTTP::Daemon->new(
 	'LocalAddr'	=> $addr,
 	'LocalPort'	=> $port,
@@ -37,12 +44,25 @@ my $server = HTTP::Daemon->new(
 
 if (!$server) {
 	chomp($@);
-	printf(STDERR "Unable to start server on %s:%u: %s\n", $addr, $port, $@);
+	syslog(LOG_CRIT, sprintf('Unable to start server on %s:%u: %s', $addr, $port, $@));
 	exit(1);
 
 } else {
-	printf(STDERR "DoH server running on %s\n", $server->url);
+	syslog(LOG_INFO, sprintf('DoH server running on %s', $server->url));
 
+}
+
+if ($daemon) {
+	syslog(LOG_DEBUG, 'daemonizing');
+	if (fork() > 0) {
+		exit 0;
+
+	} else {
+		setsid();
+		chdir('/');
+		$0 = sprintf('[%s]', basename(__FILE__));
+
+	}
 }
 
 #
@@ -61,7 +81,7 @@ while (my $connection = $server->accept) {
 
 	if ($@) {
 		chomp($@);
-		printf(STDERR "%s: %s\n", $connection->peerhost, $@);
+		syslog(LOG_DEBUG, sprintf('%s: %s', $connection->peerhost, $@));
 	}
 }
 
@@ -81,7 +101,7 @@ sub handle_connection {
 	my $request = $connection->get_request;
 
 	if (!$request) {
-		printf(STDERR "%s 400 (%s)\n", $connection->peerhost, $connection->reason);
+		syslog(LOG_DEBUG, sprintf('%s 400 (%s)', $connection->peerhost, $connection->reason));
 		$connection->send_error(400);
 
 	} else {
@@ -102,7 +122,7 @@ sub handle_connection {
 
 		} elsif ($request->method eq 'POST') {
 			if (!any { lc($_) eq lc($request->header('Content-Type')) } @types) {
-				printf(STDERR "%s 415 (type is '%s')\n", $connection->peerhost, $request->header('Content-Type'));
+				syslog(LOG_DEBUG, sprintf("%s 415 (type is '%s')", $connection->peerhost, $request->header('Content-Type')));
 				$connection->send_error(415);
 				return undef;
 
@@ -112,7 +132,7 @@ sub handle_connection {
 			}
 
 		} else {
-			printf(STDERR "%s 405 (method is '%s')\n", $connection->peerhost, $request->method);
+			syslog(LOG_DEBUG, sprintf("%s 405 (method is '%s')", $connection->peerhost, $request->method));
 			$connection->send_error(405);
 			return undef;
 
@@ -124,7 +144,7 @@ sub handle_connection {
 		my $packet = Net::DNS::Packet->new(\$data);
 
 		if (!$packet) {
-			printf(STDERR "%s 400 (unable to parse packet data)\n", $connection->peerhost);
+			syslog(LOG_DEBUG, sprintf('%s 400 (unable to parse packet data)', $connection->peerhost));
 			$connection->send_error(400);
 
 		} else {
@@ -134,11 +154,11 @@ sub handle_connection {
 			my $response = $resolver->send($packet);
 
 			if (!$response) {
-				printf(STDERR "%s 504 (%s)\n", $connection->peerhost, $resolver->errorstring);
+				syslog(LOG_DEBUG, sprintf('%s 504 (%s)', $connection->peerhost, $resolver->errorstring));
 				$connection->send_error(504);
 
 			} else {
-				printf(STDERR "%s %s %s\n", $connection->peerhost, ($response->question)[0]->qname, lc($response->header->rcode));
+				syslog(LOG_DEBUG, sprintf('%s %s/%s/%s %s', $connection->peerhost, ($response->question)[0]->qname, ($response->question)[0]->qclass, ($response->question)[0]->qtype, lc($response->header->rcode)));
 
 				#
 				# send the response back to the client

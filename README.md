@@ -31,4 +31,4 @@ The full DNS response will be printed to `STDOUT`.
 
 ## `dohd.pl` (DoH server)
 
-This script implements a simple DoH swerver using `Net::DNS` and `HTTP::Daemon`. It doesn't (currently) daemonise or do logging. You will need to put something in front of it to do SSL termination.
+This script implements a simple DoH swerver using `Net::DNS` and `HTTP::Daemon`. You will need to put something in front of it to do SSL termination.
