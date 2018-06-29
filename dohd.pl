@@ -7,6 +7,7 @@ use List::MoreUtils qw(any);
 use MIME::Base64;
 use Net::DNS;
 use POSIX qw(setsid);
+use Pod::Usage;
 use Sys::Syslog qw(:standard :macros);
 use URI;
 use strict;
@@ -17,13 +18,17 @@ my $addr  = '127.0.0.1';
 my $port  = '8080';
 my $raddr = '127.0.0.1';
 my $daemon = undef;
+my $help = undef;
 GetOptions(
 	'addr=s'	=> \$addr,
 	'port=i'	=> \$port,
 	'resolver=s'	=> \$raddr,
 	'debug'		=> \$HTTP::Daemon::DEBUG,
 	'daemon'	=> \$daemon,
+	'help'		=> \$help,
 );
+
+pod2usage(1) if ($help);
 
 my $resolver = Net::DNS::Resolver->new(
 	'nameservers'		=> [ $raddr ],
