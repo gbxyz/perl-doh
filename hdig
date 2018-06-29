@@ -124,3 +124,85 @@ if ($response->is_error || 200 != $response->code) {
 	$answer->print;
 
 }
+
+__END__
+
+=head1 NAME
+
+C<hdig> a C<dig>-like client for DNS over HTTPS (DoH)
+
+=head1 SYNOPSIS
+
+	hdig OPTIONS
+
+=head1 DESCRIPTION
+
+C<hdig> is a simple DNS over HTTPS (DoH) client implemented using L<Net::DNS> and L<LWP>.
+
+It will construct a DNS query, send it as an HTTP request to a DoH server, and display the response in human-readable format.
+
+=head1 OPTIONS
+
+C<hdig> accepts similar command-line options to C<dig>, and like C<dig>, they can be provided in any order.
+
+=over
+
+=item * query name. mandatory.
+
+=item * query type, any RR type supported by your version of L<Net::DNS> will work. Defaults to C<A> if unset.
+
+=item * query class, defaults to C<IN>.
+
+=item * URL. This may be either a fully-qualified URL such as L<https://example.com/dns-query> or a string of the form
+
+    @example.com
+
+This will get turned into the HTTPS URL above.
+
+If no URL is provided, then C<hdig> will construct one using the nameserver the system is configured with.
+
+=item * C<--insecure> or C<-k>. Disables SSL certification verification.
+
+=item * C<--debug> or C<-d>. Enables debug mode.
+
+=item * C<--help> or C<-h>. Displays help.
+
+=back
+
+=head2 EXAMPLES
+
+	$ hdig example.com @cloudflare-dns.com
+
+Sends an A query for C<example.com> to Cloudflare's DoH server.
+
+	$ hdig AAAA example.com @cloudflare-dns.com
+
+Sends an AAAA record.
+
+	$ hdig CH TXT id.server @example.com
+
+Sends a Chaosnet TXT query for C<id.server> to L<https://example.com/dns-query>.
+
+=head1 COPYRIGHT
+
+Copyright 2018 CentralNic Ltd. All rights reserved.
+
+=head1 LICENSE
+
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
+provided that the above copyright notice appear in all copies and that
+both that copyright notice and this permission notice appear in
+supporting documentation, and that the name of the author not be used
+in advertising or publicity pertaining to distribution of the software
+without specific prior written permission.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+=cut
