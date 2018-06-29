@@ -97,7 +97,7 @@ $request->header('Accept' => $ct);
 print STDERR $request->as_string if ($debug);
 
 my %options = (
-	'agent' => basename(__FILE__),
+	'agent' => basename(__FILE__, '.pl'),
 );
 
 if ($insecure) {
