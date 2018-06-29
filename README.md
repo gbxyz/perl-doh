@@ -8,6 +8,7 @@ This repository contains:
 
 * [`hdig`](https://gitlab.centralnic.com/centralnic/perl-doh/blob/master/hdig.md), a DoH client.
 * [`dohd`](https://gitlab.centralnic.com/centralnic/perl-doh/blob/master/dohd.md), a DoH server.
+* [`dohp`](https://gitlab.centralnic.com/centralnic/perl-doh/blob/master/dohp.md), a DNS proxy server.
 
 ## COPYRIGHT
 
