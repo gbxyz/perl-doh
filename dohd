@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Simple DNS-over-HTTPS server. Copyright 2018 CentralNic Ltd
+# Simple DNS over HTTPS server. Copyright 2018 CentralNic Ltd.
 use File::Basename qw(basename);
 use Getopt::Long;
 use HTTP::Daemon;
@@ -10,15 +10,24 @@ use POSIX qw(setsid);
 use Pod::Usage;
 use Sys::Syslog qw(:standard :macros);
 use URI;
+use constant CONTENT_TYPE => 'Content-Type';
+use constant X_FORWARDED_FOR => 'X-Forwarded-For';
 use strict;
 
+#
+# acceptable media types for requests
+#
 my @types = qw(application/dns-message application/dns-udpwireformat);
 
-my $addr  = '127.0.0.1';
-my $port  = '8080';
-my $raddr = '127.0.0.1';
-my $daemon = undef;
-my $help = undef;
+#
+# defaults
+#
+my $addr	= '127.0.0.1';
+my $port	= '8080';
+my $raddr	= '127.0.0.1';
+my $daemon	= undef;
+my $help	= undef;
+
 GetOptions(
 	'addr=s'	=> \$addr,
 	'port=i'	=> \$port,
@@ -86,7 +95,11 @@ while (my $connection = $server->accept) {
 
 	if ($@) {
 		chomp($@);
-		syslog(LOG_DEBUG, sprintf('%s: %s', $connection->peerhost, $@));
+		syslog(LOG_DEBUG, sprintf(
+			'%s: %s',
+			$connection->peerhost,
+			$@
+		));
 	}
 }
 
@@ -106,14 +119,23 @@ sub handle_connection {
 	my $request = $connection->get_request;
 
 	if (!$request) {
-		syslog(LOG_DEBUG, sprintf('%s 400 (%s)', $connection->peerhost, $connection->reason));
+		syslog(LOG_DEBUG, sprintf(
+			'%s 400 (%s)',
+			$connection->peerhost,
+			$connection->reason
+		));
+
 		$connection->send_error(400);
 
 	} else {
-		my $xff = 'X-Forwarded-For';
 		my $peer;
-		if ($request->header($xff)) {
-			$peer = sprintf('%s (%s: %s)', $connection->peerhost, $xff, $request->header($xff));
+		if ($request->header(X_FORWARDED_FOR)) {
+			$peer = sprintf(
+				'%s (%s: %s)',
+				$connection->peerhost,
+				X_FORWARDED_FOR,
+				$request->header(X_FORWARDED_FOR)
+			);
 
 		} else {
 			$peer = $connection->peerhost;
@@ -130,13 +152,21 @@ sub handle_connection {
 			#
 			# extract packet data from query string
 			#
-			my %params = URI->new_abs($request->uri, $server->url)->query_form;
+			my %params = URI->new_abs(
+				$request->uri,
+				$server->url
+			)->query_form;
 
 			$data = decode_base64($params{'dns'} || $params{'body'});
 
 		} elsif ($request->method eq 'POST') {
-			if (!any { lc($_) eq lc($request->header('Content-Type')) } @types) {
-				syslog(LOG_DEBUG, sprintf("%s 415 (type is '%s')", $peer, $request->header('Content-Type')));
+			if (!any { lc($_) eq lc($request->header(CONTENT_TYPE)) } @types) {
+				syslog(LOG_DEBUG, sprintf(
+					"%s 415 (type is '%s')",
+					$peer,
+					$request->header(CONTENT_TYPE)
+				));
+
 				$connection->send_error(415);
 				return undef;
 
@@ -146,7 +176,12 @@ sub handle_connection {
 			}
 
 		} else {
-			syslog(LOG_DEBUG, sprintf("%s 405 (method is '%s')", $peer, $request->method));
+			syslog(LOG_DEBUG, sprintf(
+				"%s 405 (method is '%s')",
+				$peer,
+				$request->method
+			));
+
 			$connection->send_error(405);
 			return undef;
 
@@ -158,7 +193,11 @@ sub handle_connection {
 		my $packet = Net::DNS::Packet->new(\$data);
 
 		if (!$packet) {
-			syslog(LOG_DEBUG, sprintf('%s 400 (unable to parse packet data)', $peer));
+			syslog(LOG_DEBUG, sprintf(
+				'%s 400 (unable to parse packet data)',
+				$peer
+			));
+
 			$connection->send_error(400);
 
 		} else {
@@ -168,18 +207,30 @@ sub handle_connection {
 			my $response = $resolver->send($packet);
 
 			if (!$response) {
-				syslog(LOG_DEBUG, sprintf('%s 504 (%s)', $peer, $resolver->errorstring));
+				syslog(LOG_DEBUG, sprintf(
+					'%s 504 (%s)',
+					$peer,
+					$resolver->errorstring
+				));
+
 				$connection->send_error(504);
 
 			} else {
-				syslog(LOG_DEBUG, sprintf('%s %s/%s/%s %s', $peer, ($response->question)[0]->qname, ($response->question)[0]->qclass, ($response->question)[0]->qtype, lc($response->header->rcode)));
+				syslog(LOG_DEBUG, sprintf(
+					'%s %s/%s/%s %s',
+					$peer,
+					($response->question)[0]->qname,
+					($response->question)[0]->qclass,
+					($response->question)[0]->qtype,
+					lc($response->header->rcode)
+				));
 
 				#
 				# send the response back to the client
 				#
 				$connection->send_status_line;
 				$connection->send_header('Server', basename(__FILE__));
-				$connection->send_header('Content-Type', $types[0]);
+				$connection->send_header(CONTENT_TYPE, $types[0]);
 				$connection->send_header('Connection', 'close');
 				$connection->send_crlf;
 				$connection->print($response->data);
@@ -199,7 +250,9 @@ C<dohd>, a DNS over HTTPS (DoH) server.
 
 =head1 DESCRIPTION
 
-C<dohd> is a simple DoH server built L<Net::DNS> and L<HTTP::Daemon>.
+C<dohd> is a simple DoH server built using L<Net::DNS> and L<HTTP::Daemon>.
+It accepts HTTP requests containing DNS queries, forwards them to a DNS server,
+and sends the response back to the client.
 
 =head1 SYNOPSIS
 
@@ -225,13 +278,18 @@ C<dohd> is a simple DoH server built L<Net::DNS> and L<HTTP::Daemon>.
 
 =head2 Supporting HTTPS and HTTP/2
 
-The DoH specification (L<https://tools.ietf.org/html/draft-ietf-doh-dns-over-https>) makes support for HTTPS mandatory, and says that you SHOULD support HTTP/2.
+The DoH specification (L<https://tools.ietf.org/html/draft-ietf-doh-dns-over-https>)
+makes support for HTTPS mandatory, and says that you SHOULD support HTTP/2.
 
-This can be achieved fairly easily by using C<nghttpx>, (L<https://nghttp2.org/documentation/nghttpx.1.html>) as a reverse proxy sitting in front of C<dohd>:
+This can be achieved fairly easily by using C<nghttpx>,
+(L<https://nghttp2.org/documentation/nghttpx.1.html>) as a reverse proxy sitting
+in front of C<dohd>:
 
 	nghttpx -b 127.0.0.1,8080 -f 127.0.0.1,4430 server.key server.crt
 
-The above command will accept HTTP/2 connections over HTTPS on C<127.0.0.1> port C<4430> and forward them as HTTP/1.1 connections to C<127.0.0.1> port C<8080>.
+The above command will accept HTTP/2 connections over HTTPS on C<127.0.0.1>
+port C<4430> and forward them as HTTP/1.1 connections to C<127.0.0.1> port
+C<8080>.
 
 =head1 COPYRIGHT
 

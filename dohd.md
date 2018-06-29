@@ -4,7 +4,9 @@
 
 # DESCRIPTION
 
-`dohd` is a simple DoH server built [Net::DNS](https://metacpan.org/pod/Net::DNS) and [HTTP::Daemon](https://metacpan.org/pod/HTTP::Daemon).
+`dohd` is a simple DoH server built using [Net::DNS](https://metacpan.org/pod/Net::DNS) and [HTTP::Daemon](https://metacpan.org/pod/HTTP::Daemon).
+It accepts HTTP requests containing DNS queries, forwards them to a DNS server,
+and sends the response back to the client.
 
 # SYNOPSIS
 
@@ -21,13 +23,18 @@
 
 ## Supporting HTTPS and HTTP/2
 
-The DoH specification ([https://tools.ietf.org/html/draft-ietf-doh-dns-over-https](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https)) makes support for HTTPS mandatory, and says that you SHOULD support HTTP/2.
+The DoH specification ([https://tools.ietf.org/html/draft-ietf-doh-dns-over-https](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https))
+makes support for HTTPS mandatory, and says that you SHOULD support HTTP/2.
 
-This can be achieved fairly easily by using `nghttpx`, ([https://nghttp2.org/documentation/nghttpx.1.html](https://nghttp2.org/documentation/nghttpx.1.html)) as a reverse proxy sitting in front of `dohd`:
+This can be achieved fairly easily by using `nghttpx`,
+([https://nghttp2.org/documentation/nghttpx.1.html](https://nghttp2.org/documentation/nghttpx.1.html)) as a reverse proxy sitting
+in front of `dohd`:
 
         nghttpx -b 127.0.0.1,8080 -f 127.0.0.1,4430 server.key server.crt
 
-The above command will accept HTTP/2 connections over HTTPS on `127.0.0.1` port `4430` and forward them as HTTP/1.1 connections to `127.0.0.1` port `8080`.
+The above command will accept HTTP/2 connections over HTTPS on `127.0.0.1`
+port `4430` and forward them as HTTP/1.1 connections to `127.0.0.1` port
+`8080`.
 
 # COPYRIGHT
 

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Simple DNS-over-HTTPS client. Copyright 2018 CentralNic Ltd
+# Simple DNS over HTTPS client. Copyright 2018 CentralNic Ltd.
 use File::Basename qw(basename);
 use Getopt::Long;
 use HTTP::Request::Common;
