@@ -8,11 +8,12 @@ use Mozilla::CA;
 use Net::DNS::Parameters;
 use Net::DNS;
 use URI;
+use Pod::Usage;
+use constant URL_TEMPLATE => 'https://%s/dns-query';
+use constant CONTENT_TYPE => 'application/dns-message';
 use strict;
 
-my $ct = 'application/dns-message';
-
-my ($qname, $qtype, $qclass, $url, $debug, $insecure);
+my ($qname, $qtype, $qclass, $url, $debug, $insecure, $help);
 
 #
 # dig-like command lines, things can appear in any order
@@ -24,7 +25,10 @@ my ($qname, $qtype, $qclass, $url, $debug, $insecure);
 while (scalar(@ARGV) > 0) {
 	my $param = shift(@ARGV);
 
-	if ($param =~ /^(-d|--debug)$/) {
+	if ($param =~ /^(-h|--help)$/) {
+		$help = 1;
+
+	} elsif ($param =~ /^(-d|--debug)$/) {
 		$debug = 1;
 
 	} elsif ($param =~ /^(-k|--insecure)$/) {
@@ -37,7 +41,7 @@ while (scalar(@ARGV) > 0) {
 
 		} else {
 			if ('@' eq $1) {
-				$url = sprintf('https://%s/dns-query', $2);
+				$url = sprintf(URL_TEMPLATE, $2);
 
 			} else {
 				$url = $param;
@@ -75,24 +79,20 @@ while (scalar(@ARGV) > 0) {
 	}
 }
 
-$qtype = $qtype || 'A';
-$qclass = $qclass || 'IN';
+pod2usage(1) if ($help);
 
 if (!$qname) {
 	print STDERR "Error: no query name provided\n";
 	exit(1);
-
-} elsif (!$url) {
-	print STDERR "Error: no URL provided\n";
-	exit(1);
-
 }
 
-$qname =~ s/\.$//g;
-my $packet = Net::DNS::Packet->new($qname.'.', $qtype, $qclass);
+$url = sprintf(URL_TEMPLATE, (Net::DNS::Resolver->new->nameservers)[0]) if (!$url);
 
-my $request = POST($url, 'Content-Type' => $ct, 'Content' => $packet->data);
-$request->header('Accept' => $ct);
+$qname =~ s/\.$//g;
+my $packet = Net::DNS::Packet->new($qname.'.', $qtype || 'A', $qclass || 'IN');
+
+my $request = POST($url, 'Content-Type' => CONTENT_TYPE, 'Content' => $packet->data);
+$request->header('Accept' => CONTENT_TYPE);
 
 print STDERR $request->as_string if ($debug);
 
