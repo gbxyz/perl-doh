@@ -14,13 +14,19 @@ and sends the response back to the client.
 
 # OPTIONS
 
-- `--addr=ADDR` - address to listen on, defaults to `127.0.0.1`.
+- `--addr=ADDR` - address to listen on, defaults to
+`127.0.0.1`.
 - `--port=PORT` - port to listen on, defaults to `5353`.
 - `--server=URL` - Name of the server to send DoH queries to.
 - `--url=URL` - URL to use instead of a server name.
+- `--bootstrap=ADDR` - The IP address of the host specified in
+`--server` or `--url`, avoids circular loops where `dohp` is
+configured as the system's own resolver.
 - `--insecure` - Disable SSL certification verification.
-- `--debug` - Enables debug mode for `HTTP::Daemon` and `Net::DNS::Resolver`.
-- `--daemon` - Daemonise, otherwise, `dohd` stays in the foreground.
+- `--debug` - Enables debug mode for `HTTP::Daemon` and
+`Net::DNS::Resolver`.
+- `--daemon` - Daemonise, otherwise, `dohd` stays in the
+foreground.
 - `--help` - display help.
 
 # COPYRIGHT

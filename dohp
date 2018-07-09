@@ -6,6 +6,7 @@ use LWP::UserAgent;
 use Mozilla::CA;
 use Net::DNS::Nameserver;
 use Sys::Syslog qw(:standard :macros);
+use URI;
 use constant URL_TEMPLATE => 'https://%s/dns-query';
 use constant CONTENT_TYPE => 'application/dns-message';
 use strict;
@@ -21,6 +22,7 @@ my $debug	= undef;
 my $url		= undef;
 my $server	= undef;
 my $insecure	= undef;
+my $bootstrap	= undef;
 
 GetOptions(
 	'addr=s'	=> \$addr,
@@ -31,6 +33,7 @@ GetOptions(
 	'daemon'	=> \$daemon,
 	'help'		=> \$help,
 	'insecure'	=> \$insecure,
+	'bootstrap=s'	=> \$bootstrap,
 );
 
 pod2usage(1) if ($help);
@@ -42,10 +45,28 @@ if ($url && $server) {
 } elsif ($server) {
 	$url = sprintf(URL_TEMPLATE, $server);
 
-} elsif (!$url) {
+} elsif ($url) {
+	$server = URI->new($url)->host;
+
+} else {
 	print STDERR "Missing --server or --url argument\n";
 	exit(1);
 
+}
+
+if ($bootstrap) {
+	eval q{
+		use LWP::UserAgent::DNS::Hosts;
+
+		LWP::UserAgent::DNS::Hosts->register_host($server => $bootstrap);
+
+		LWP::UserAgent::DNS::Hosts->enable_override;
+	};
+
+	if ($@) {
+		print STDERR $@;
+		exit(1);
+	}
 }
 
 my %options = (
@@ -180,7 +201,8 @@ and sends the response back to the client.
 
 =over
 
-=item * C<--addr=ADDR> - address to listen on, defaults to C<127.0.0.1>.
+=item * C<--addr=ADDR> - address to listen on, defaults to
+C<127.0.0.1>.
 
 =item * C<--port=PORT> - port to listen on, defaults to C<5353>.
 
@@ -188,11 +210,17 @@ and sends the response back to the client.
 
 =item * C<--url=URL> - URL to use instead of a server name.
 
+=item * C<--bootstrap=ADDR> - The IP address of the host specified in
+C<--server> or C<--url>, avoids circular loops where C<dohp> is
+configured as the system's own resolver.
+
 =item * C<--insecure> - Disable SSL certification verification.
 
-=item * C<--debug> - Enables debug mode for C<HTTP::Daemon> and C<Net::DNS::Resolver>.
+=item * C<--debug> - Enables debug mode for C<HTTP::Daemon> and
+C<Net::DNS::Resolver>.
 
-=item * C<--daemon> - Daemonise, otherwise, C<dohd> stays in the foreground.
+=item * C<--daemon> - Daemonise, otherwise, C<dohd> stays in the
+foreground.
 
 =item * C<--help> - display help.
 
