@@ -5,6 +5,7 @@ use HTTP::Request::Common;
 use LWP::UserAgent;
 use Mozilla::CA;
 use Net::DNS::Nameserver;
+use Pod::Usage;
 use Sys::Syslog qw(:standard :macros);
 use URI;
 use constant URL_TEMPLATE => 'https://%s/dns-query';
