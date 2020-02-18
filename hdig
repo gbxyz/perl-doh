@@ -13,7 +13,7 @@ use constant URL_TEMPLATE => 'https://%s/dns-query';
 use constant CONTENT_TYPE => 'application/dns-message';
 use strict;
 
-my ($qname, $qtype, $qclass, $url, $debug, $insecure, $help);
+my ($qname, $qtype, $qclass, $url, $debug, $insecure, $help, $dnssec, $cdflag, $norecurse);
 
 #
 # dig-like command lines, things can appear in any order
@@ -69,6 +69,15 @@ while (scalar(@ARGV) > 0) {
 
 		}
 
+	} elsif ('+dnssec' eq $param) {
+		$dnssec = 1;
+
+	} elsif ('+cdflag' eq $param) {
+		$cdflag = 1;
+
+	} elsif ('+norecurse' eq $param) {
+		$norecurse = 1;
+
 	} elsif ($qname) {
 		print STDERR "Error: multiple query names provided\n";
 		exit;
@@ -90,6 +99,12 @@ $url = sprintf(URL_TEMPLATE, (Net::DNS::Resolver->new->nameservers)[0]) if (!$ur
 
 $qname =~ s/\.$//g;
 my $packet = Net::DNS::Packet->new($qname.'.', $qtype || 'A', $qclass || 'IN');
+
+$packet->header->do($dnssec);
+$packet->header->cd($cdflag);
+$packet->header->rd(!$norecurse);
+
+print STDERR $packet->string if ($debug);
 
 my $request = POST($url, 'Content-Type' => CONTENT_TYPE, 'Content' => $packet->data);
 $request->header('Accept' => CONTENT_TYPE);
@@ -160,6 +175,12 @@ C<hdig> accepts similar command-line options to C<dig>, and like C<dig>, they ca
 This will get turned into the HTTPS URL above.
 
 If no URL is provided, then C<hdig> will construct one using the nameserver the system is configured with.
+
+=item * C<+dnssec>. Sets the EDNS DNSSEC OK flag.
+
+=item * C<+cdflag>. Sets the C<cd> bit in the query header.
+
+=item * C<+norecurse>. Unsets the C<rd> bit in the query header.
 
 =item * C<--insecure> or C<-k>. Disables SSL certification verification.
 

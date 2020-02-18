@@ -4,7 +4,7 @@
 
 # DESCRIPTION
 
-`hdig` is a simple DNS over HTTPS (DoH) client implemented using [Net::DNS](https://metacpan.org/pod/Net::DNS) and [LWP](https://metacpan.org/pod/LWP).
+`hdig` is a simple DNS over HTTPS (DoH) client implemented using [Net::DNS](https://metacpan.org/pod/Net%3A%3ADNS) and [LWP](https://metacpan.org/pod/LWP).
 
 It will construct a DNS query, send it as an HTTP request to a DoH server, and display the response in human-readable format.
 
@@ -17,7 +17,7 @@ It will construct a DNS query, send it as an HTTP request to a DoH server, and d
 `hdig` accepts similar command-line options to `dig`, and like `dig`, they can be provided in any order.
 
 - query name. mandatory.
-- query type, any RR type supported by your version of [Net::DNS](https://metacpan.org/pod/Net::DNS) will work. Defaults to `A` if unset.
+- query type, any RR type supported by your version of [Net::DNS](https://metacpan.org/pod/Net%3A%3ADNS) will work. Defaults to `A` if unset.
 - query class, defaults to `IN`.
 - URL. This may be either a fully-qualified URL such as [https://example.com/dns-query](https://example.com/dns-query) or a string of the form
 
@@ -27,6 +27,9 @@ It will construct a DNS query, send it as an HTTP request to a DoH server, and d
 
     If no URL is provided, then `hdig` will construct one using the nameserver the system is configured with.
 
+- `+dnssec`. Sets the EDNS DNSSEC OK flag.
+- `+cdflag`. Sets the `cd` bit in the query header.
+- `+norecurse`. Unsets the `rd` bit in the query header.
 - `--insecure` or `-k`. Disables SSL certification verification.
 - `--debug` or `-d`. Enables debug mode.
 - `--help` or `-h`. Displays help.
